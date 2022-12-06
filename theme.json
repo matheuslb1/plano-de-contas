@@ -1,0 +1,25 @@
+{
+  "sizes": {
+    "small": 12,
+    "medium": 15,
+    "big": 20,
+    "bigger": 22
+  },
+  "colors": {
+    "primary": "#622490",
+    "secondary": "#F0EDF5",
+    "income": "#1BA803",
+    "expense": "#E28856",
+    "disabled": "#DADADA",
+    "disabledText": "#747474",
+    "dropdownIcon": "#747474",
+    "background": "#FFFFFF",
+    "placeholder": "#C4C4D1",
+    "modalBackground": "#000000AF",
+    "lightBorder": "#0000001A",
+    "danger": "#FF6680",
+    "listTitle": "#3D3D4C",
+    "listSubtitle": "#A0A0B2",
+    "text": "#6C6C80"
+  }
+}
