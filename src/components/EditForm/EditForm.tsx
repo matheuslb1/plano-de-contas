@@ -10,9 +10,11 @@ import {
 } from "react-native";
 import { useSelector } from "react-redux";
 import theme from "../../../theme.json";
+import { findAvailableParent } from "../../logic/findAvailableParent/findAvailableParent";
 import { findSuggestedCode } from "../../logic/findSuggestedCode/findSuggestedCode";
 import { Account, ReduxState } from "../../types";
 import Input from "../Input/Input";
+import MaxCodeMessage from "../MaxCodeMessage/MaxCodeMessage";
 import Select, { Option } from "../Select/Select";
 
 /**
@@ -31,6 +33,7 @@ interface EditFormProps {
  */
 function EditForm(props: EditFormProps) {
   const { data, onChangeData, errors, isEditing } = props;
+  const initialParent = useRef<string>(data.parentCode);
   const codeRef = useRef<TextInput>(null);
   const nameRef = useRef<TextInput>(null);
   const typeRef = useRef<TextInput>(null);
@@ -40,6 +43,12 @@ function EditForm(props: EditFormProps) {
   const fullCode = data.parentCode
     ? `${data.parentCode}.${data.code || ""}`
     : data.code;
+
+  /**
+   * Suggested parent in case the current parent already has a child
+   * with code 999.
+   */
+  const [suggestedParent, setSuggestedParent] = useState("");
 
   /**
    * Contains all VALID parents for this account.
@@ -76,6 +85,19 @@ function EditForm(props: EditFormProps) {
     } else if (key === "parentCode") {
       const parent = accounts.find((x) => x.code === value) as Account;
       const code = findSuggestedCode(accounts, value);
+
+      const availableParent = findAvailableParent(accounts, value);
+
+      if (
+        availableParent &&
+        availableParent !== value &&
+        value !== initialParent.current
+      ) {
+        setSuggestedParent(availableParent);
+      } else {
+        setSuggestedParent("");
+      }
+
       setImmediate(() => codeRef.current?.focus());
       onChangeData({ ...data, [key]: value, type: parent?.type, code });
     } else {
@@ -141,80 +163,76 @@ function EditForm(props: EditFormProps) {
   };
 
   return (
-    <View style={styles.container}>
-      <KeyboardAvoidingView
-        style={styles.kav}
-        behavior="padding"
-        enabled={Platform.OS === "ios"}
+    <KeyboardAvoidingView
+      style={styles.kav}
+      behavior="padding"
+      enabled={Platform.OS === "ios"}
+    >
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollViewContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          {renderSelect("Conta pai", "parentCode", {
-            options: parentAccounts,
-            disabledReason:
-              "Nenhuma conta que não aceita lançamento foi encontrada",
-            onGetOptionText: (option: Option) =>
-              `${option.code} - ${option.name}`,
-            onGetOptionColor: (option: Account) =>
-              `${
-                option.type === "receita"
-                  ? theme.colors.income
-                  : theme.colors.expense
-              }`,
-          })}
+        {renderSelect("Conta pai", "parentCode", {
+          options: parentAccounts,
+          disabledReason:
+            "Nenhuma conta que não aceita lançamento foi encontrada",
+          onGetOptionText: (opt: Option) => `${opt.code} - ${opt.name}`,
+          onGetOptionColor: (opt: Account) =>
+            `${
+              opt.type === "receita"
+                ? theme.colors.income
+                : theme.colors.expense
+            }`,
+        })}
 
-          {renderInput("Código", "code", {
-            keyboardType: "numeric",
-            onSubmitEditing: () => nameRef.current?.focus(),
-            prefix: data.parentCode ? `${data.parentCode}.` : "",
-            ref: codeRef,
-            autoFocus: true,
-          })}
+        <MaxCodeMessage
+          suggestedParent={suggestedParent}
+          onChangeParent={(e) => onChange("parentCode", e)}
+        />
 
-          {renderInput("Nome", "name", {
-            ref: nameRef,
-            onSubmitEditing: () => !typeDisabled && typeRef.current?.focus(),
-          })}
+        {renderInput("Código", "code", {
+          autoFocus: true,
+          keyboardType: "numeric",
+          onSubmitEditing: () => nameRef.current?.focus(),
+          prefix: data.parentCode ? `${data.parentCode}.` : "",
+          ref: codeRef,
+        })}
 
-          {renderSelect("Tipo", "type", {
-            ref: typeRef,
-            disabled: typeDisabled,
-            disabledReason:
-              "Você não pode alterar esse campo pois o tipo deve ser igual ao da conta pai.",
-            options: [
-              { code: "receita", name: "Receita" },
-              { code: "despesa", name: "Despesa" },
-            ],
-          })}
+        {renderInput("Nome", "name", {
+          ref: nameRef,
+          onSubmitEditing: () => !typeDisabled && typeRef.current?.focus(),
+        })}
 
-          {renderSelect("Aceita lançamentos", "entry", {
-            ref: entryRef,
-            disabled: entryDisabled,
-            disabledReason:
-              "Você não pode alterar esse campo pois essa conta possui filhos.",
-            options: [
-              { code: true, name: "Sim" },
-              { code: false, name: "Não" },
-            ],
-          })}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </View>
+        {renderSelect("Tipo", "type", {
+          ref: typeRef,
+          disabled: typeDisabled,
+          disabledReason:
+            "Você não pode alterar esse campo pois o tipo deve ser igual ao da conta pai.",
+          options: [
+            { code: "receita", name: "Receita" },
+            { code: "despesa", name: "Despesa" },
+          ],
+        })}
+
+        {renderSelect("Aceita lançamentos", "entry", {
+          ref: entryRef,
+          disabled: entryDisabled,
+          disabledReason:
+            "Você não pode alterar esse campo pois essa conta possui filhos.",
+          options: [
+            { code: true, name: "Sim" },
+            { code: false, name: "Não" },
+          ],
+        })}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: theme.colors.secondary,
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    flex: 1,
-    marginTop: 20,
-  },
   kav: {
+    marginTop: 20,
     backgroundColor: theme.colors.secondary,
     borderTopRightRadius: 25,
     borderTopLeftRadius: 25,
