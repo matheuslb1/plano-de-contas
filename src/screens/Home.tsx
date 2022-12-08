@@ -3,7 +3,7 @@ import theme from "../../theme.json";
 import { useSharedValue } from "react-native-reanimated";
 import Header from "../components/Header/Header";
 import Search from "../components/Search/Search";
-import AccountList from "../components/AccountLis/AccountList";
+import AccountList from "../components/AccountList/AccountList";
 import { useNavigation } from "@react-navigation/native";
 import { useSelector } from "react-redux";
 import { Account, ReduxState } from "../types";
